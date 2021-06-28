@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 )
 
-const TokenBytes = 8
+const TokenBytes = 16
 
 func Token() (string, error) {
 	b := make([]byte, TokenBytes)

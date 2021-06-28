@@ -13,7 +13,7 @@ var _ shagoslav.MeetingRoomService = &MeetingRoomService{}
 
 func NewMeetingRoomService(db *sql.DB) *MeetingRoomService {
 	ms := MeetingRoomService{db: db}
-	ms.AutoMigrate()
+	ms.DestructiveReset() // TODO: DESTRUCTIVE RESET!!!!
 	return &ms
 }
 
@@ -25,7 +25,7 @@ func (ms *MeetingRoomService) AutoMigrate() {
 	const queryCreate = `CREATE TABLE IF NOT EXISTS Rooms
 	(
 		id SERIAL PRIMARY KEY,
-		group_id INTEGER,
+		group_id INTEGER UNIQUE,
 		name TEXT NOT NULL,
 		guest_token TEXT,
 		admin_token TEXT,
@@ -85,6 +85,21 @@ func (ms *MeetingRoomService) CreateMeetingRoom(name string, groupID int) (*shag
 // 	return mr, nil
 // }
 
+func (ms *MeetingRoomService) ByToken(token string) (*shagoslav.MeetingRoom, bool, error) {
+	var isAdmin bool = true
+	room, err := ms.ByAdminToken(token)
+	if err == ErrNotFound {
+		isAdmin = false
+		room, err = ms.ByGuestToken(token)
+		if err != nil {
+			return nil, false, err
+		}
+	} else if err != nil {
+		return nil, false, err
+	}
+	return room, isAdmin, nil
+}
+
 func (ms *MeetingRoomService) ByAdminToken(token string) (*shagoslav.MeetingRoom, error) {
 	mr := new(shagoslav.MeetingRoom)
 	mr.AdminToken = token
@@ -103,7 +118,7 @@ func (ms *MeetingRoomService) ByAdminToken(token string) (*shagoslav.MeetingRoom
 func (ms *MeetingRoomService) ByGuestToken(token string) (*shagoslav.MeetingRoom, error) {
 	mr := new(shagoslav.MeetingRoom)
 	mr.GuestToken = token
-	err := ms.db.QueryRow(`SELECT id, group_id, name, guest_token, created_at
+	err := ms.db.QueryRow(`SELECT id, group_id, name, admin_token, created_at
 	FROM Rooms
 	WHERE guest_token = $1;`, token).Scan(&mr.ID, &mr.GroupID, &mr.Name, &mr.AdminToken, &mr.CreatedAt)
 	if err != nil {
