@@ -7,11 +7,8 @@ import (
 
 const TokenBytes = 16
 
-func Token() (string, error) {
+func Token() string {
 	b := make([]byte, TokenBytes)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	rand.Read(b) // NB: there's no error checking...
+	return base64.URLEncoding.EncodeToString(b)
 }

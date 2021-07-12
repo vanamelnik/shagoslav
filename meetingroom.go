@@ -6,40 +6,55 @@ import (
 	"time"
 )
 
-// MeetingRoom represents an instance of meetingroom
+// MeetingRoom represents an instance of a meeting room.
+// Rooms are created by administrators of the groups.
 type MeetingRoom struct {
-	ID         int
-	GroupID    int
-	Name       string
+	ID int
+
+	// room name
+	Name string
+
+	// id of the group whose administrator created this meeting
+	GroupID int
+
+	// GuestToken and AdminToken are randomly generated tokens used in references
+	// for ordinary guests and meeting admins
 	GuestToken string
 	AdminToken string
-	CreatedAt  time.Time
-	StartTime  time.Time
+
+	// Timestamps for room creation and meeting's starting
+	CreatedAt time.Time
+	StartTime time.Time
 }
 
+// MeetingRoomService represents a service for managing meeting rooms
 type MeetingRoomService interface {
+	// Creates a new meeting room object and stores it in the database
 	CreateMeetingRoom(name string, groupID int) (*MeetingRoom, error)
 
-	ByToken(token string) (*MeetingRoom, bool, error)
+	// ByToken retrieves a meeting room object from the database using admin or guest token.
+	// Also returns a variable isAdmin that indicates whether the visitor is an administrator or a regular guest
+	ByToken(token string) (mr *MeetingRoom, isAdmin bool, err error)
 
 	// DeleteMeetingRoom(id int)
 
-	// MembersLoggedIn() *[]Guest
 	// AdminsLoggedIn() *[]Guest
 }
 
-func NewMeetingRoomController(mrs MeetingRoomService) *MeetingRoomsController {
+// NewMeetingRoomsController creates a new MeetingRoomsController
+func NewMeetingRoomsController(mrs MeetingRoomService) *MeetingRoomsController {
 	return &MeetingRoomsController{
 		mrs: mrs,
 	}
 }
 
-// MeetingRoomsController provides responses to users' requests.
+// MeetingRoomsController provides responses to users' requests for managing meetings
 type MeetingRoomsController struct {
 	mrs MeetingRoomService
 }
 
-// GET /newroom?name=<name>&groupid=<groupId
+// NewMeetingRoom handles query GET /newroom?name=<name>&groupid=<groupId>
+// It creates a new meeting using MeetingRoomService and generates guest and admin links
 func (mc *MeetingRoomsController) NewMeetingRoom(name string, groupId int) (*MeetingRoom, error) {
 	room, err := mc.mrs.CreateMeetingRoom(name, groupId)
 	if err != nil {
@@ -51,25 +66,4 @@ func (mc *MeetingRoomsController) NewMeetingRoom(name string, groupId int) (*Mee
 		name, guestLink, adminLink)
 	return room, nil
 	// TODO: refresh admin page /group?id=groupId view with filled 'links' fields and message that room is created
-}
-
-// GET /room?token=<token>
-func (mc *MeetingRoomsController) RoomController(token string) {
-	room, isAdmin, err := mc.mrs.ByToken(token)
-	if err != nil {
-		fmt.Printf("Sorry, we can't find a room with token %s\n"+
-			"Error message: %v\n", token, err)
-		return
-	}
-	fmt.Println(`****************************************************************
-*                   _-===============-_                        *
-*               Welcome to our Meeting room!                   *
-*                ---===================---                     *
-****************************************************************` + "\n")
-	fmt.Println("\tRoom info:\n\t----------")
-	fmt.Printf("ID:\t\t%v\nGroupID:\t%v\nName:\t\t%v\nGuestToken:\t%v\nAdminToken:\t%v\nCreatedAt:\t%v\n",
-		room.ID, room.GroupID, room.Name, room.GuestToken, room.AdminToken, room.CreatedAt)
-	if isAdmin {
-		fmt.Println("You have admin rights!")
-	}
 }

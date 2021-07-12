@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// ErrNotFound returns when the entry in db is not found
 	ErrNotFound dbError = "database: resource not found"
 )
 
@@ -17,11 +18,8 @@ func (e dbError) Error() string {
 	return string(e)
 }
 
-// type Database interface {
-// 	AutoMigrate() error
-// 	DestructiveReset() error
-// }
-
+// NewDB connects to Postgresql database
+// It panics if there's any error
 func NewDB() *sql.DB {
 	connStr := "host=localhost port=5432 user=postgres password=qwe123 dbname=shagoslav_dev sslmode=disable"
 	db, err := sql.Open("postgres", connStr)

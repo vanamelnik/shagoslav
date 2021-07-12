@@ -9,14 +9,17 @@ import (
 	"time"
 )
 
+// Ensure service implements interface
 var _ shagoslav.MeetingRoomService = &MeetingRoomService{}
 
+// NewMeetingRoomService returns a new instance of MeetingRoomService
 func NewMeetingRoomService(db *sql.DB) *MeetingRoomService {
 	ms := MeetingRoomService{db: db}
-	ms.DestructiveReset() // TODO: DESTRUCTIVE RESET!!!!
+	ms.AutoMigrate()
 	return &ms
 }
 
+// MeetingRoomService represents a service for managing meeting rooms
 type MeetingRoomService struct {
 	db *sql.DB
 }
@@ -46,11 +49,12 @@ func (ms *MeetingRoomService) DestructiveReset() {
 	ms.AutoMigrate()
 }
 
+// CreateMeetingRoom creates a new meeting room object and stores it in the database
 func (ms *MeetingRoomService) CreateMeetingRoom(name string, groupID int) (*shagoslav.MeetingRoom, error) {
 	var id int
 	var createdAt time.Time
-	guestToken, _ := rand.Token()
-	adminToken, _ := rand.Token() //TODO: error check
+	guestToken := rand.Token()
+	adminToken := rand.Token() //TODO: error check
 	// TODO: check if grooupID is valid
 	err := ms.db.QueryRow(`INSERT INTO Rooms (name, group_id, guest_token, admin_token)
 	VALUES ($1, $2, $3, $4)
@@ -85,12 +89,15 @@ func (ms *MeetingRoomService) CreateMeetingRoom(name string, groupID int) (*shag
 // 	return mr, nil
 // }
 
+// ByToken retrieves a meeting room object from the database using admin or guest token.
+// Returns ErrNotFound if room does not exist
+// Also returns a variable isAdmin that indicates whether the visitor is an administrator or a regular guest
 func (ms *MeetingRoomService) ByToken(token string) (*shagoslav.MeetingRoom, bool, error) {
 	var isAdmin bool = true
-	room, err := ms.ByAdminToken(token)
+	room, err := ms.byAdminToken(token)
 	if err == ErrNotFound {
 		isAdmin = false
-		room, err = ms.ByGuestToken(token)
+		room, err = ms.byGuestToken(token)
 		if err != nil {
 			return nil, false, err
 		}
@@ -100,7 +107,8 @@ func (ms *MeetingRoomService) ByToken(token string) (*shagoslav.MeetingRoom, boo
 	return room, isAdmin, nil
 }
 
-func (ms *MeetingRoomService) ByAdminToken(token string) (*shagoslav.MeetingRoom, error) {
+// Retrieves a room from db using admin_token field
+func (ms *MeetingRoomService) byAdminToken(token string) (*shagoslav.MeetingRoom, error) {
 	mr := new(shagoslav.MeetingRoom)
 	mr.AdminToken = token
 	err := ms.db.QueryRow(`SELECT id, group_id, name, guest_token, created_at
@@ -115,7 +123,8 @@ func (ms *MeetingRoomService) ByAdminToken(token string) (*shagoslav.MeetingRoom
 	return mr, nil
 }
 
-func (ms *MeetingRoomService) ByGuestToken(token string) (*shagoslav.MeetingRoom, error) {
+// Retrieves a room from db using guest_token field
+func (ms *MeetingRoomService) byGuestToken(token string) (*shagoslav.MeetingRoom, error) {
 	mr := new(shagoslav.MeetingRoom)
 	mr.GuestToken = token
 	err := ms.db.QueryRow(`SELECT id, group_id, name, admin_token, created_at
