@@ -1,0 +1,15 @@
+{{define "yield"}}
+    <h2>Личный кабинет администратора онлайн-группы</h2>
+    {{if .}}
+        <p>Встреча <b>{{.Title}}</b> создана!</p>
+        <a href = {{.GuestLink}}>Ссылка для входа</a><br>
+        <a href = {{.AdminLink}}>Ссылка для входа (админ)</a>
+    {{else}}
+        <form action = "/group" method="POST">
+            <h3>Создание новой встречи</h3>
+            <label for="title">Название встречи</label>
+            <input type="text" name="title">
+            <input type="submit" value="Создать встречу">
+        </form>
+    {{end}}
+{{end}}

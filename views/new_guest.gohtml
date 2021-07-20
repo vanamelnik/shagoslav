@@ -1,0 +1,9 @@
+{{define "yield"}}
+    <form action = "/meeting/signup" method="GET">
+        <h3>Новый гость на встречу {{.Title}}</h3>
+        <label for="name">Ваше имя</label>
+        <input type="text" name="name">
+        <input type="hidden" name="token" value={{.Token}}>
+        <input type="submit" value="Перейти к встрече...">
+    </form>
+{{end}}

@@ -1,0 +1,10 @@
+{{define "yield"}}
+    <h2>Добро пожаловать на встречу {{.Meeting.Title}}</h2>
+    <p>Ваше имя: {{.Guest.Name}}</p>
+    <h3>На встрече также присутствуют:</h3>
+    <ul>
+        {{range .Guests}}
+            <li>{{.Name}}{{if .IsAdmin}} <b>admin</b>{{end}}</li>
+        {{end}}
+    </ul>
+{{end}}

@@ -31,7 +31,7 @@ func (gs *GuestService) AutoMigrate() {
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
 		remember TEXT UNIQUE NOT NULL,
-		room_id INTEGER NOT NULL,
+		meeting_id INTEGER NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		is_admin BOOLEAN DEFAULT FALSE
 	);
@@ -51,19 +51,19 @@ func (gs *GuestService) DestructiveReset() {
 }
 
 // CreateGuest creates a new Guest object and stores it in the database
-func (gs *GuestService) CreateGuest(name string, room *shagoslav.MeetingRoom, isAdmin bool) (*shagoslav.Guest, error) {
+func (gs *GuestService) CreateGuest(name string, meeting *shagoslav.Meeting, isAdmin bool) (*shagoslav.Guest, error) {
 	var createdAt time.Time
 	rememberToken := rand.Token()
 
-	err := gs.db.QueryRow(`INSERT INTO Guests (name, room_id, is_admin, remember)
+	err := gs.db.QueryRow(`INSERT INTO Guests (name, meeting_id, is_admin, remember)
 	VALUES ($1, $2, $3, $4)
-	RETURNING created_at;`, name, room.ID, isAdmin, rememberToken).Scan(&createdAt)
+	RETURNING created_at;`, name, meeting.ID, isAdmin, rememberToken).Scan(&createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("GuestService cannot insert a new guest into Guests: %v", err)
 	}
 	guest := shagoslav.Guest{
 		Name:          name,
-		RoomID:        room.ID,
+		MeetingID:     meeting.ID,
 		RememberToken: rememberToken,
 		CreatedAt:     createdAt,
 		IsAdmin:       isAdmin,
@@ -74,8 +74,8 @@ func (gs *GuestService) CreateGuest(name string, room *shagoslav.MeetingRoom, is
 // ByRemember retrieves a Guest object from the database using guest's remember token
 func (gs *GuestService) ByRemember(token string) (*shagoslav.Guest, error) {
 	guest := new(shagoslav.Guest)
-	err := gs.db.QueryRow(`SELECT name, room_id, is_admin, created_at FROM Guests
-	WHERE remember = $1;`, token).Scan(&guest.Name, &guest.RoomID, &guest.IsAdmin, &guest.CreatedAt)
+	err := gs.db.QueryRow(`SELECT name, meeting_id, is_admin, created_at FROM Guests
+	WHERE remember = $1;`, token).Scan(&guest.Name, &guest.MeetingID, &guest.IsAdmin, &guest.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
@@ -86,16 +86,16 @@ func (gs *GuestService) ByRemember(token string) (*shagoslav.Guest, error) {
 	return guest, nil
 }
 
-// GuestsLoggedIn retrieves all guests that logged in the room with id = roomID
-func (gs *GuestService) GuestsLoggedIn(roomID int) (*[]shagoslav.Guest, error) {
+// GuestsLoggedIn retrieves all guests that logged at the meeting with id = meetingID
+func (gs *GuestService) GuestsLoggedIn(meetingID int) (*[]shagoslav.Guest, error) {
 	var guests []shagoslav.Guest
-	rows, err := gs.db.Query("SELECT remember, name, is_admin, created_at FROM Guests WHERE room_id = $1;", roomID)
+	rows, err := gs.db.Query("SELECT remember, name, is_admin, created_at FROM Guests WHERE meeting_id = $1;", meetingID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		g := shagoslav.Guest{RoomID: roomID}
+		g := shagoslav.Guest{MeetingID: meetingID}
 		if err := rows.Scan(&g.RememberToken, &g.Name, &g.IsAdmin, &g.CreatedAt); err != nil {
 			return nil, err
 		}

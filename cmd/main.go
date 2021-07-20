@@ -1,9 +1,13 @@
 package main
 
 import (
+	"log"
+	"net/http"
 	"shagoslav"
 	"shagoslav/database"
+	"shagoslav/middleware"
 
+	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
@@ -11,43 +15,26 @@ var URL string = "localhost:3000"
 
 func main() {
 	db := database.NewDB()
-	ms := database.NewMeetingRoomService(db)
+	ms := database.NewMeetingService(db)
 	gs := database.NewGuestService(db)
 
-	// mc := shagoslav.NewMeetingRoomController(ms)
+	//mc := shagoslav.NewMeetingRoomsController(ms)
 	gc := shagoslav.NewGuestController(gs, ms)
 
-	// guest, err := gc.NewGuest("Anakin Skywalker", "bbHo0V9nEMN6Fak2Cph9Xg==")
-	// if err != nil {
-	// 	log.Println(err)
-	// } else {
-	// 	log.Printf("Succesfully created a new guest: %+v", guest)
-	// }
+	staticC := shagoslav.NewStatic()
+	groupC := shagoslav.NewGroupController(ms)
+	router := mux.NewRouter()
 
-	gc.GuestInRoom("uOKD9zLshUuEK2o6xMZ4ig==")
+	// Routes
+	router.Handle("/", staticC.Home)
 
-	// names := []string{
-	// 	"Alcoholic anonymous",
-	// 	"Shopoholic anonymous",
-	// 	"VDA",
-	// }
-	// rooms := make([]shagoslav.MeetingRoom, 0)
-	// for id, name := range names {
-	// 	room, err := mrs.NewMeetingRoom(name, id)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	}
-	// 	rooms = append(rooms, *room)
-	// }
-	// fmt.Println("Records successfully inserted")
-	// t := rand.Token()
-	// tokens := []string{
-	// 	rooms[2].GuestToken,
-	// 	t,
-	// 	rooms[0].AdminToken,
-	// }
-	// for _, token := range tokens {
-	// 	fmt.Printf("\nConnecting to room with token %v. . . \n", token)
-	// 	mrs.RoomController(token)
-	// }
+	// Group routes
+	router.HandleFunc("/group", groupC.AccountPage).Methods("GET", "POST") // group account page
+
+	// Meeting routes
+	router.HandleFunc("/meeting", middleware.RequireMeetingToken(gc.GuestAtMeeting)).Methods("GET")    // meeting page
+	router.HandleFunc("/meeting/newguest", middleware.RequireMeetingToken(gc.NewGuest)).Methods("GET") // new guest form
+	router.HandleFunc("/meeting/signup", middleware.RequireMeetingToken(gc.Signup)).Methods("GET")     // create new guest
+
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
