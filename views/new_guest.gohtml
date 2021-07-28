@@ -1,9 +1,21 @@
 {{define "yield"}}
-    <form action = "/meeting/signup" method="GET">
-        <h3>Новый гость на встречу {{.Title}}</h3>
-        <label for="name">Ваше имя</label>
-        <input type="text" name="name">
-        <input type="hidden" name="token" value={{.Token}}>
-        <input type="submit" value="Перейти к встрече...">
-    </form>
+    <div class="row justify-content-center">
+        <div class ="col-md-7">
+            <div class="card">
+                <h5 class="card-header bg-primary text-white">Новый участник встречи {{.Title}}</h5>
+                <div class="card-body">
+                    <h5 class="card-title">Добро пожаловать!</h5>
+                    <form action = "/meeting/signup" method="GET">
+                        <label for="name" class="form-label">Ваше имя:</label>
+                        <input type="text" id="name" name="name" class="form-control form-control-lg" aria-describedby="nameHelpBlock">
+                        <input type="hidden" name="token" value={{.Token}}>
+                        <div id="nameHelpBlock" class="form-text">
+                            Назовитесь именем, по которому к вам будут обращаться другие участники встречи
+                        </div>
+                        <button type="submit" class="btn btn-primary">Перейти к встрече...</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {{end}}

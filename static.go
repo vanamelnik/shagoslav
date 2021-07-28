@@ -4,7 +4,7 @@ import "shagoslav/views"
 
 func NewStatic() *Static {
 	return &Static{
-		Home: views.NewView("simple", "views/static/index.gohtml"),
+		Home: views.NewView("bootstrap", "views/static/index.gohtml"),
 	}
 }
 

@@ -33,7 +33,7 @@ type GroupService interface {
 
 func NewGroupController(ms MeetingService) *GroupController {
 	return &GroupController{
-		AccountView: views.NewView("simple", "views/account.gohtml"),
+		AccountView: views.NewView("bootstrap", "views/account.gohtml"),
 		ms:          ms,
 	}
 }

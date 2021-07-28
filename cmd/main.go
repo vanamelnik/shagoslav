@@ -31,6 +31,10 @@ func main() {
 	// Group routes
 	router.HandleFunc("/group", groupC.AccountPage).Methods("GET", "POST") // group account page
 
+	// Assets
+	router.PathPrefix("/assets/").Handler(
+		http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
+
 	// Meeting routes
 	router.HandleFunc("/meeting", middleware.RequireMeetingToken(gc.GuestAtMeeting)).Methods("GET")    // meeting page
 	router.HandleFunc("/meeting/newguest", middleware.RequireMeetingToken(gc.NewGuest)).Methods("GET") // new guest form

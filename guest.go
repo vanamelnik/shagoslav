@@ -59,9 +59,9 @@ func NewGuestController(gs GuestService, mrs MeetingService) *GuestController {
 	return &GuestController{
 		gs:               gs,
 		mrs:              mrs,
-		SignupView:       views.NewView("simple", "views/new_guest.gohtml"),
-		MeetingGuestView: views.NewView("simple", "views/meeting_guest.gohtml"),
-		MeetingAdminView: views.NewView("simple", "views/meeting_admin.gohtml"),
+		SignupView:       views.NewView("bootstrap", "views/new_guest.gohtml"),
+		MeetingGuestView: views.NewView("bootstrap", "views/meeting_guest.gohtml"),
+		MeetingAdminView: views.NewView("bootstrap", "views/meeting_admin.gohtml"),
 	}
 }
 
@@ -202,5 +202,4 @@ func (gc *GuestController) GuestAtMeeting(w http.ResponseWriter, r *http.Request
 	} else {
 		gc.MeetingGuestView.Render(w, r, mi)
 	}
-	return
 }
