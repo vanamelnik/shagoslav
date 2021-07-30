@@ -1,5 +1,5 @@
 {{define "yield"}}
-    <h3>Личный кабинет администратора онлайн-группы</h3>
+    {{/* <h3>Личный кабинет администратора онлайн-группы</h3>
     {{if .}}
         <p>Встреча <b>{{.Title}}</b> успешно создана! Вы можете перейти на нее по ссылке
         для администратора: <a href={{.AdminLink}}>{{.AdminLink}}</a></p>
@@ -12,5 +12,35 @@
             <input type="text" name="title">
             <input type="submit" value="Создать встречу">
         </form>
-    {{end}}
+    {{end}} */}}
+    <h3>Группа {{.Group.Name}} - личный кабинет</h3>
+    <div class="row">
+        <div class="col-md-4">
+            <form action="/group" method="GET">
+                <h4>Новая встреча</h4>
+                <div class="mb-3">
+                    <label for="title" class="form-label">Название</label>
+                    <input type="text" class="form-control" id="title" placeholder="Введите название встречи" name="title">
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="acceptOptions" id="acceptAll" value="true" checked>
+                    <label class="form-check-label" for="acceptAll">Принимать всех</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="acceptOptions" id="checkAll" value="false">
+                    <label class="form-check-label" for="checkAll">Проверять входящих</label>
+                </div>
+                <div class="mb-3">
+                    <label for="start" class="form-label">Старт:</label>
+                    <input type="time" id="start" name="start">
+                </div>
+                <p>Продолжительность</p>
+
+                <button class="btn btn-primary btn-lg" type="submit">Создать встречу</button>
+            </form>
+        </div>
+        <div class="col">
+            <h4>Материалы</h4>
+        </div>
+    </div>
 {{end}}
