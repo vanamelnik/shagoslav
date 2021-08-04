@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300&display=swap');
+
+.timer {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: large;
+    color: green;
+    background-color: antiquewhite;
+    width:fit-content;
+    padding: 2%;
+}

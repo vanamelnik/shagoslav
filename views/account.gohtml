@@ -1,23 +1,9 @@
 {{define "yield"}}
-    {{/* <h3>Личный кабинет администратора онлайн-группы</h3>
-    {{if .}}
-        <p>Встреча <b>{{.Title}}</b> успешно создана! Вы можете перейти на нее по ссылке
-        для администратора: <a href={{.AdminLink}}>{{.AdminLink}}</a></p>
-        <p>Разошлите участникам встречи гостевые ссылки: 
-        <a href={{.GuestLink}}>{{.GuestLink}}</a></p>
-    {{else}}
-        <form action = "/group" method="POST">
-            <h3>Создание новой встречи</h3>
-            <label for="title">Название встречи</label>
-            <input type="text" name="title">
-            <input type="submit" value="Создать встречу">
-        </form>
-    {{end}} */}}
-    <h3>Группа {{.Group.Name}} - личный кабинет</h3>
-    <div class="row">
-        <div class="col-md-4">
-            <form action="/group" method="GET">
-                <h4>Новая встреча</h4>
+    <h3 class="text-center mb-5">Сообщество {{.GroupName}} - личный кабинет</h3>
+    <div class="row mt-5">
+        <div class="col-md-5">
+            <form action="/group" method="POST">
+                <h4 class="mb-4 mt-2">Новая встреча</h4>
                 <div class="mb-3">
                     <label for="title" class="form-label">Название</label>
                     <input type="text" class="form-control" id="title" placeholder="Введите название встречи" name="title">
@@ -30,17 +16,81 @@
                     <input class="form-check-input" type="radio" name="acceptOptions" id="checkAll" value="false">
                     <label class="form-check-label" for="checkAll">Проверять входящих</label>
                 </div>
-                <div class="mb-3">
-                    <label for="start" class="form-label">Старт:</label>
-                    <input type="time" id="start" name="start">
+                <div class="row mt-3">
+                    <div class="col-md mb-3">
+                        <label for="start" class="form-label">Старт:</label>
+                        <input type="time" id="start" name="start" value="19:00">
+                    </div>
+                    <div class="col-md mb-3">
+                    <label for="duration">Продолжительность:</label>
+                    <span>
+                        <input type="number" id="duration" name="duration" min="1" max="6" value="2">
+                        ч.
+                    </span>
+                    </div>
                 </div>
-                <p>Продолжительность</p>
-
-                <button class="btn btn-primary btn-lg" type="submit">Создать встречу</button>
+                <div class="text-center mt-2">
+                    <button class="btn btn-primary" type="submit">Создать встречу</button>
+                </div>
             </form>
         </div>
         <div class="col">
-            <h4>Материалы</h4>
+            <h4 class="mb-3 mt-3">Материалы</h4>
+                <div class="mb-3 p-3 border bg-light">
+                    <h5>Творческое кредо</h5>
+                    <p>Пусть всегда будет солнце, пусть всегда будет небо, пусть всегда будет нетоксичная мама
+                    , пусть всегда будет внутренний ребенок</p>
+                </div>
+                <div class="mb-3 p-3 border bg-light">
+                    <h5>Если есть новичок</h5>
+                    <p>Встать лицом на восток-северо-восток, повернуться три раза и произнести
+                    творческое кредо (см.выше). После чего обнять каждого присутствующего и пообещать 
+                    не давать обещаний.</p>
+                </div>
+                <div class="mb-3 p-3 border bg-light">
+                    <h5>Важная информация</h5>
+                    <p>บุญมากตื่นนอนตอนหกโมงเช้าทุกวันเขาทำอาหารเช้าและดื่มกาแฟเขาขับรถไปทำงานด้วยรถยนต์ของเขา
+                    งานของเขาเริ่มตอนเช้าเจ็ดโมงสามสิบนาทีบุญมากเป็นพ่อครัวที่ร้านอาหารเขาทำอาหารให้ลูกค้าที่หิวโหย
+                    ลูกค้ามาจากหลายประเทศพวกเขาพูดภาษาที่แตกต่างกันหลายภาษามากบุญมากได้พบกับเพื่อนที่เป็นมิตรหลายคน
+                    บุญมากมีความสุขเมื่อเขาพูดคุยกับลูกค้า</p>
+                </div>
         </div>
     </div>
+{{/* If the meeting already created, we place modal dialog with links to the meeting */}}
+    {{if .MeetingTitle}}
+        {{template "modal" .}}
+    {{end}}
+{{end}}
+
+{{define "modal"}}
+ <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-md-down">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-light">
+                    <h5 class="modal-title" id="staticBackdropLabel">{{.GroupName}}</h5>
+                    <!--<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                </div>
+                <div class="modal-body p-2">
+                    <p>Встреча <b>{{.MeetingTitle}}</b> успешно создана! Вы можете перейти на нее по ссылке для администратора: 
+                    <a href={{.Data.AdminLink}} data-bs-toggle="tooltip" data-bs-placement="top"
+                    title="Все, у кого есть эта ссылка обладают правами администратора!" target="_blank">{{.Data.AdminLink}}</a></p>
+                    <p>Разошлите участникам встречи гостевые ссылки: 
+                    <a href={{.Data.GuestLink}} data-bs-toggle="tooltip" data-bs-placement="top"
+                    title="По этой ссылке обычные гости попадают на встречу" target="_blank">{{.Data.GuestLink}}</a></p>
+                </div>
+                <!--<div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Understood</button>
+                </div>-->
+            </div>
+        </div>
+    </div>
+    <script>
+        addEventListener('load', (event) => {
+            var myModal = new bootstrap.Modal(document.getElementById('staticBackdrop'), {})
+            myModal.toggle()
+        });
+</script>
 {{end}}

@@ -29,7 +29,8 @@ func main() {
 	router.Handle("/", staticC.Home)
 
 	// Group routes
-	router.HandleFunc("/group", groupC.AccountPage).Methods("GET", "POST") // group account page
+	router.HandleFunc("/group", groupC.AccountPage).Methods("GET") // group account page
+	router.HandleFunc("/group", groupC.NewMeeting).Methods("POST") // create new meeting
 
 	// Assets
 	router.PathPrefix("/assets/").Handler(

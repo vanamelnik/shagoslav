@@ -88,9 +88,9 @@ type GuestController struct {
 //
 func (gc *GuestController) NewGuest(w http.ResponseWriter, r *http.Request) {
 	type signupData struct {
-		Title string
 		Token string // We store the token at hidden <input> field
 	}
+
 	// With middleware we made sure the token field was present in the request URL
 	meetingToken := r.URL.Query().Get("token")
 	meeting, _, err := gc.mrs.ByToken(meetingToken)
@@ -99,7 +99,11 @@ func (gc *GuestController) NewGuest(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/group", http.StatusFound)
 		return
 	}
-	gc.SignupView.Render(w, r, &signupData{Title: meeting.Title, Token: meetingToken})
+	gc.SignupView.Render(w, r, views.ViewData{
+		GroupName:    GroupName,
+		MeetingTitle: meeting.Title,
+		Data:         signupData{Token: meetingToken},
+	})
 }
 
 // Signup creates a new 'Guest' obect at the meeting with valid GuestToken or AdminToken using
@@ -146,10 +150,9 @@ func (gc *GuestController) Signup(w http.ResponseWriter, r *http.Request) {
 // GET /meeting?token=<token>
 //
 func (gc *GuestController) GuestAtMeeting(w http.ResponseWriter, r *http.Request) {
-	type MeetingInfo struct {
-		Meeting *Meeting
-		Guest   *Guest
-		Guests  *[]Guest
+	type meetingInfo struct {
+		Guest  *Guest
+		Guests *[]Guest
 	}
 	meetingToken := r.URL.Query().Get("token") // And again we thank middleware))
 	meeting, isAdmin, err := gc.mrs.ByToken(meetingToken)
@@ -187,19 +190,29 @@ func (gc *GuestController) GuestAtMeeting(w http.ResponseWriter, r *http.Request
 			log.Printf("guest service: error when trying to update guest name='%s': %v", guest.Name, err)
 		}
 	}
-	guests, err := gc.gs.GuestsLoggedIn(guest.MeetingID)
+	tmpGuests, err := gc.gs.GuestsLoggedIn(guest.MeetingID)
 	if err != nil {
 		log.Printf("Meeting: cannot get a list of guests: %v", err)
 	}
-	mi := MeetingInfo{
-		Meeting: meeting,
-		Guest:   guest,
-		Guests:  guests,
+
+	guests := make([]Guest, 0, len(*tmpGuests)-1)
+
+	for _, g := range *tmpGuests {
+		if g.RememberToken != guest.RememberToken {
+			guests = append(guests, g) // make a list of guests except you
+		}
+	}
+
+	viewData := views.ViewData{
+		MeetingActive: true,
+		GroupName:     GroupName,
+		MeetingTitle:  meeting.Title,
+		Data:          meetingInfo{Guest: guest, Guests: &guests},
 	}
 	// render guest or admin meeting view
 	if guest.IsAdmin {
-		gc.MeetingAdminView.Render(w, r, mi)
+		gc.MeetingAdminView.Render(w, r, viewData)
 	} else {
-		gc.MeetingGuestView.Render(w, r, mi)
+		gc.MeetingGuestView.Render(w, r, viewData)
 	}
 }

@@ -1,10 +1,50 @@
 {{define "yield"}}
-    <h2>Добро пожаловать на встречу {{.Meeting.Title}}</h2>
-    <p>Ваше имя: {{.Guest.Name}}</p>
+    {{/* <h2>Добро пожаловать на встречу {{.MeetingTitle}}</h2>
+    <p>Ваше имя: {{.Data.Guest.Name}}</p>
     <h3>На встрече также присутствуют:</h3>
     <ul>
-        {{range .Guests}}
+        {{range .Data.Guests}}
             <li>{{.Name}}{{if .IsAdmin}} <b>admin</b>{{end}}</li>
         {{end}}
-    </ul>
+    </ul> */}}
+    {{template "guest_view" .Data}}
+{{end}}
+{{define "guest_view"}}
+    <div class="row">
+        <!-- Guests column -->
+        <div class="col-md-4 border-right bg-light px-2">
+            <div class="text-center mb-3"><span class="timer border">2:15</span></div>
+            <div class="me">
+                <span>
+                    <button type="button" class="btm-sm btn-close" aria-label="Close"></button>
+                    {{.Guest.Name}}
+                </span>
+            </div>
+            <div>
+                <ul class="guests">
+                    {{range .Guests}}
+                        <li><span class="guest">{{.Name}}<span></li>
+                    {{end}}
+                </ul>
+            </div>
+        </div>
+        <!-- Materials column -->
+        <div class="col-md-8 p-3">
+            <div class="border p-3">
+                <h3>Воззвание</h3>
+                <p mt-3>Надо, надо умываться по утрам и вечерам! А нечистым
+                трубочистам - стыд и срам!</p>
+                <h4>12 традиций анонимных трубочистов</h4>
+                <ol>
+                    <li>Мы осознаём, что вылетаем в трубу</li>
+                    <li>Видя перед собой трубу, мы стремимся войти в неё чистыми</li>
+                    <li>И выйти из неё чистыми</li>
+                    <li>Если мы не в состоянии выполнить предыдущий пункт, то выполняем следующий</li>
+                    <li>Выполняем <i>Воззвание</i></li>
+                </ol>
+                <p>Постой, трубочист, не спеши лезть на крышу! Тебя ждет иная судьба... Пока ещё не поздно, умой свои руки - 
+                не то твоё дело - труба.
+            </div>
+        </div>
+    </div>
 {{end}}

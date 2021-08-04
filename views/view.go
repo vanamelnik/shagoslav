@@ -48,19 +48,35 @@ type View struct {
 	Template *template.Template
 }
 
+type ViewData struct {
+	MeetingActive bool
+	GroupName     string
+	MeetingTitle  string
+	Data          interface{}
+}
+
 // Render creates an image of a web page from templates and layouts and writes it to the response
 func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) {
+	var vd ViewData
+	switch d := data.(type) {
+	case ViewData:
+		vd = d
+	default:
+		vd = ViewData{
+			Data: data,
+		}
+	}
 	w.Header().Set("Content-type", "text/html")
 	var buf bytes.Buffer
-	if err := v.Template.ExecuteTemplate(&buf, v.Layout, data); err != nil {
+	if err := v.Template.ExecuteTemplate(&buf, v.Layout, vd); err != nil {
 		log.Printf("views:render: %v", err)
 		http.Error(w, "Sorry, something went wrong!", http.StatusInternalServerError)
+		return
 	}
 	if _, err := io.Copy(w, &buf); err != nil {
 		log.Printf("views:render: %v", err)
 		http.Error(w, "Sorry, something went wrong!", http.StatusInternalServerError)
 	}
-	return
 }
 
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
