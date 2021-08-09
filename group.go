@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"shagoslav/rand"
 	"shagoslav/views"
 	"time"
 
@@ -11,12 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TODO: this is a temporary items! GroupService is not implemented yet.
-var (
-	groupId       = 1
-	GroupName     = "Анонимные трубочисты"
-	meetingActive = ""
-)
+const adminRememberCookie = "shagoslav_admin"
 
 type Group struct {
 	ID           int
@@ -34,8 +30,11 @@ type Group struct {
 
 type GroupService interface {
 	CreateGroup(name string, email string, passwordHash string, isOpen bool) (*Group, error)
+	UpdateGroup(g *Group) error
+
+	ByID(id int) (*Group, error)
 	ByEmail(email string) (*Group, error)
-	AdminLogin(email string, password string)
+	ByRemember(remember string) (*Group, error)
 }
 
 func NewGroupController(ms MeetingService) *GroupController {
@@ -52,7 +51,7 @@ type GroupController struct {
 }
 
 // getPostFormParams parses PostForm and fills the input form fields using Gorilla Schema
-func getPostFromParams(r *http.Request, form interface{}) error {
+func getPostFormParams(r *http.Request, form interface{}) error {
 	if err := r.ParseForm(); err != nil {
 		return err
 	}
@@ -76,7 +75,7 @@ func (gc *GroupController) Signup(w http.ResponseWriter, r *http.Request) {
 		isOpen   bool   `schema:"isOpen"`
 	}
 	var f signupForm
-	if err := getPostFromParams(r, &f); err != nil {
+	if err := getPostFormParams(r, &f); err != nil {
 		log.Printf("GroupController:Signup:Parseform: %v", err)
 		http.Error(w, "Sorrrrrry... "+err.Error(), http.StatusInternalServerError) // TODO: fix this
 		return
@@ -94,7 +93,11 @@ func (gc *GroupController) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("GroupController: Successfully created a new group id=%v, name=%s, email=%s, password_hash=%s, created_at=%v",
 		g.ID, g.Name, g.AdminEmail, g.PasswordHash, g.CreatedAt)
-	// TODO: login and redirect!!!
+	if err = gc.signIn(g, w); err != nil {
+		log.Printf("GroupService:Signup: %v", err)
+		http.Error(w, "Something went wrong, cannot log in((", http.StatusInternalServerError) // TODO: Alert
+	}
+	http.Redirect(w, r, "/group", http.StatusFound)
 }
 
 // Login authenticates admin user, creates remember token and stores it in db & in browser cookie.
@@ -106,39 +109,68 @@ func (gc *GroupController) Login(w http.ResponseWriter, r *http.Request) {
 		password string `schema:"password"`
 	}
 	var f loginForm
-	if err := getPostFromParams(r, &f); err != nil {
+	if err := getPostFormParams(r, &f); err != nil {
 		log.Printf("GroupController:Login:Parseform: %v", err)
 		http.Error(w, "Sorrrrrry... "+err.Error(), http.StatusInternalServerError) // TODO: fix this
 		return
 	}
-
 	g, err := gc.grs.ByEmail(f.email)
 	if err != nil {
 		log.Printf("GroupService:login:%v", err)
-		// TODO: make an alert Not Found
+		// TODO: Set Alert wrong email & password
 		http.Redirect(w, r, "/group/login", http.StatusFound)
 		return
 	}
-	// Stopped here))
+	if err = bcrypt.CompareHashAndPassword([]byte(g.PasswordHash), []byte(f.password)); err != nil {
+		// TODO: Set Alert Wrong email & password
+		log.Printf("GroupService:login:%v", err)
+		http.Redirect(w, r, "/group/login", http.StatusFound)
+	}
+	err = gc.signIn(g, w)
+	if err != nil {
+		log.Printf("GroupService:login:UpdateGroup%v", err)
+		http.Redirect(w, r, "/group/login", http.StatusFound)
+	}
+	http.Redirect(w, r, "/group", http.StatusFound)
+}
+
+// signIn updates LastLogin and AdminRemember fields in the database and creates a cookie
+// with admin's freshly generated remember token
+func (gc *GroupController) signIn(g *Group, w http.ResponseWriter) error {
+	g.AdminRememberToken = rand.Token()
+	g.LastLogin = time.Now()
+	if err := gc.grs.UpdateGroup(g); err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:  adminRememberCookie,
+		Value: g.AdminRememberToken,
+	})
+	return nil
 }
 
 // GET /group
 func (gc *GroupController) AccountPage(w http.ResponseWriter, r *http.Request) {
-	// TODO: check if there is an already created meeting
-	log.Printf("account: %v is trying to render account page; meetingActive=%v", r.RemoteAddr, meetingActive)
+	cookie, err := r.Cookie(adminRememberCookie)
+	if err != nil {
+		http.Redirect(w, r, "/group/login", http.StatusFound)
+		return
+	}
+	g, err := gc.grs.ByRemember(cookie.Value)
+	if err != nil {
+		log.Printf("AccountPage:remember token in the cookie doesn't match: %v", err)
+		http.Redirect(w, r, "/group/login", http.StatusFound) // TODO: Set Alert
+		return
+	}
 
-	if meetingActive == "" {
-		gc.AccountView.Render(w, r, views.ViewData{GroupName: GroupName})
+	m, err := gc.ms.ByGroupId(g.ID)
+	if err != nil {
+		gc.AccountView.Render(w, r, views.ViewData{GroupName: g.Name})
 	} else {
-		m, _, err := gc.ms.ByToken(meetingActive)
-		if err != nil {
-			log.Printf("AccountPage: look for active meeting: %v", err)
-			http.Error(w, "Sorrry... "+err.Error(), http.StatusNotFound)
-			return
-		}
 		gc.AccountView.Render(w, r, views.ViewData{
-			GroupName:    GroupName,
-			MeetingTitle: m.Title,
+			MeetingActive: true,
+			GroupName:     g.Name,
+			MeetingTitle:  m.Title,
 			Data: struct {
 				GuestLink string
 				AdminLink string
@@ -158,6 +190,20 @@ func (gc *GroupController) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		start         string `schema:"start"`
 		duration      string `schema:"duration"`
 	}
+	// TODO: add middleware to check if there's a cookie and retrieve a Group object
+	cookie, err := r.Cookie(adminRememberCookie)
+	if err != nil {
+		http.Redirect(w, r, "/group/login", http.StatusFound)
+		return
+	}
+	g, err := gc.grs.ByRemember(cookie.Value)
+	if err != nil {
+		log.Printf("AccountPage:remember token in the cookie doesn't match: %v", err)
+		http.Redirect(w, r, "/group/login", http.StatusFound) // TODO: Set Alert
+		return
+	}
+
+	//TODO: Check unreal case if we already have active meeting...
 
 	var f meetingForm
 	// TODO: implement decoding fields "start" and "duration"
@@ -173,12 +219,11 @@ func (gc *GroupController) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		log.Printf("NewMeetingInfo:schema:%v", err)
 		gc.AccountView.Render(w, r, nil)
 	}
-	meeting, err := gc.ms.CreateMeeting(f.title, groupId)
+	meeting, err := gc.ms.CreateMeeting(f.title, g.ID)
 	if err != nil {
 		log.Printf("AccountPage: %v", err)
 		http.Error(w, "Something went wrong, cannot create new meeting((", http.StatusInternalServerError)
 	}
-	log.Printf("AccountPage: Successfuly created a meeting %s\n", f.title)
-	meetingActive = meeting.AdminToken
+	log.Printf("AccountPage: Successfuly created a meeting %s\n", meeting.Title)
 	http.Redirect(w, r, "/group", http.StatusFound)
 }

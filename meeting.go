@@ -32,8 +32,8 @@ type MeetingService interface {
 
 	// ByToken retrieves a meeting object from the database using admin or guest token.
 	// Also returns a variable isAdmin that indicates whether the visitor is an administrator or a regular guest
-	ByToken(token string) (mr *Meeting, isAdmin bool, err error)
-
+	ByToken(token string) (m *Meeting, isAdmin bool, err error)
+	ByGroupId(groupId int) (*Meeting, error)
 	// DeleteMeeting(id int)
 
 	// AdminsLoggedIn() *[]Guest

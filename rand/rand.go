@@ -7,6 +7,7 @@ import (
 
 const TokenBytes = 16
 
+// Token returns randomly generated token
 func Token() string {
 	b := make([]byte, TokenBytes)
 	rand.Read(b) // NB: there's no error checking...

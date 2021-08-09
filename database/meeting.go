@@ -110,32 +110,48 @@ func (ms *MeetingService) ByToken(token string) (*shagoslav.Meeting, bool, error
 
 // Retrieves a meeting from db using admin_token field
 func (ms *MeetingService) byAdminToken(token string) (*shagoslav.Meeting, error) {
-	mr := new(shagoslav.Meeting)
-	mr.AdminToken = token
+	m := new(shagoslav.Meeting)
+	m.AdminToken = token
 	err := ms.db.QueryRow(`SELECT id, group_id, title, guest_token, created_at
 	FROM Meetings
-	WHERE admin_token = $1;`, token).Scan(&mr.ID, &mr.GroupID, &mr.Title, &mr.GuestToken, &mr.CreatedAt)
+	WHERE admin_token = $1;`, token).Scan(&m.ID, &m.GroupID, &m.Title, &m.GuestToken, &m.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("MeetingService cannot find the meeting: %v", err)
 	}
-	return mr, nil
+	return m, nil
 }
 
 // Retrieves a meeting from db using guest_token field
 func (ms *MeetingService) byGuestToken(token string) (*shagoslav.Meeting, error) {
-	mr := new(shagoslav.Meeting)
-	mr.GuestToken = token
+	m := new(shagoslav.Meeting)
+	m.GuestToken = token
 	err := ms.db.QueryRow(`SELECT id, group_id, title, admin_token, created_at
 	FROM Meetings
-	WHERE guest_token = $1;`, token).Scan(&mr.ID, &mr.GroupID, &mr.Title, &mr.AdminToken, &mr.CreatedAt)
+	WHERE guest_token = $1;`, token).Scan(&m.ID, &m.GroupID, &m.Title, &m.AdminToken, &m.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("MeetingService cannot find the meeting: %v", err)
 	}
-	return mr, nil
+	return m, nil
+}
+
+// Retrieves a meeting from db using guest_token field
+func (ms *MeetingService) ByGroupId(groupId int) (*shagoslav.Meeting, error) {
+	m := new(shagoslav.Meeting)
+	m.GroupID = groupId
+	err := ms.db.QueryRow(`SELECT id, title, admin_token, guest_token, created_at
+	FROM Meetings
+	WHERE group_id = $1;`, groupId).Scan(&m.ID, &m.Title, &m.AdminToken, &m.GuestToken, &m.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("MeetingService cannot find the meeting: %v", err)
+	}
+	return m, nil
 }

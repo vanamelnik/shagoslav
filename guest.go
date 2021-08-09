@@ -10,7 +10,7 @@ import (
 
 const (
 	guestRememberCookie = "shagoslav_guest" // Cookie name for guest's remember token
-	guestCookieExpires  = time.Minute * 3   // TODO: change this interval to 4 hours or something like that
+	guestCookieExpires  = time.Hour * 4
 )
 
 // GuestService represents a service for managing Guest objects in the database
@@ -55,10 +55,10 @@ type Guest struct {
 	// is not used in the application
 }
 
-func NewGuestController(gs GuestService, mrs MeetingService) *GuestController {
+func NewGuestController(gs GuestService, grs GroupService, ms MeetingService) *GuestController {
 	return &GuestController{
 		gs:               gs,
-		mrs:              mrs,
+		mrs:              ms,
 		SignupView:       views.NewView("bootstrap", "views/new_guest.gohtml"),
 		MeetingGuestView: views.NewView("bootstrap", "views/meeting_guest.gohtml"),
 		MeetingAdminView: views.NewView("bootstrap", "views/meeting_admin.gohtml"),
@@ -73,6 +73,7 @@ func NewGuestController(gs GuestService, mrs MeetingService) *GuestController {
 //
 type GuestController struct {
 	// Services
+	grs GroupService
 	gs  GuestService
 	mrs MeetingService
 
@@ -99,8 +100,14 @@ func (gc *GuestController) NewGuest(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/group", http.StatusFound)
 		return
 	}
+	group, err := gc.grs.ByID(meeting.GroupID)
+	if err != nil {
+		log.Printf("NewGuest:get group name:%v", err)
+		http.Error(w, "Sorry, something went wrong!", http.StatusInternalServerError)
+		return
+	}
 	gc.SignupView.Render(w, r, views.ViewData{
-		GroupName:    GroupName,
+		GroupName:    group.Name,
 		MeetingTitle: meeting.Title,
 		Data:         signupData{Token: meetingToken},
 	})
@@ -203,9 +210,16 @@ func (gc *GuestController) GuestAtMeeting(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	group, err := gc.grs.ByID(meeting.GroupID)
+	if err != nil {
+		log.Printf("Meeting:get group name:%v", err)
+		http.Error(w, "Sorry, something went wrong!", http.StatusInternalServerError)
+		return
+	}
+
 	viewData := views.ViewData{
 		MeetingActive: true,
-		GroupName:     GroupName,
+		GroupName:     group.Name,
 		MeetingTitle:  meeting.Title,
 		Data:          meetingInfo{Guest: guest, Guests: &guests},
 	}

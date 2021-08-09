@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/lib/pq"
@@ -26,6 +27,7 @@ func NewDB() *sql.DB {
 	if err != nil {
 		log.Fatalf("database service: %v", err)
 	}
+	fmt.Println("successfully connected to Postgres database shagoslav_dev")
 	return db
 }
 

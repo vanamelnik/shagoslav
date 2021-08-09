@@ -111,6 +111,6 @@ func (gs *GuestService) UpdateGuest(guest *shagoslav.Guest) error {
 	if err != nil {
 		return err
 	}
-	_, err = gs.db.Exec(`UPDATE Guests SET name = $1, is_admin = $2 WHERE remember = $3`, guest.Name, guest.IsAdmin, guest.RememberToken)
+	_, err = gs.db.Exec(`UPDATE Guests SET name = $1, is_admin = $2 WHERE remember = $3;`, guest.Name, guest.IsAdmin, guest.RememberToken)
 	return err
 }
