@@ -1,0 +1,31 @@
+{{define "yield"}}
+    <div class="row justify-content-center">
+        <div class ="col-md-7">
+            <div class="card">
+                <h5 class="card-header bg-primary text-white">Создание сообщества</h5>
+                <div class="card-body p-4">
+                    {{/* <h5 class="card-title mb-3">Добро пожаловать!</h5> */}}
+                    <form action = "/group/signup" method="POST">
+                        <label for="name" class="form-label">Название сообщества</label>
+                        <input type="text" id="name" name="name" class="form-control form-control-lg">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input type="text" id="email" name="email" class="form-control form-control-lg" aria-describedby="emailHelpBlock">
+                        <div id="emailHelpBlock" class="form-text">
+                            Мы обещаем никому не показывать ваш адрес. Он будет использован для важных уведомлений и 
+                            восстановления пароля
+                        </div>
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg" aria-describedby="passwordHelpBlock">
+                        {{/* TODO: We need to ask the password 2 times. Let's implement it using JavaScript */}}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="true" id="isOpen" name="isOpen" checked
+                             data-bs-toggle="tooltip" data-bs-placement="top" title="Информация об открытых сообществах будет видна всем посетителям сайта.">
+                            <label class="form-check-label" for="isOpen">Открытое сообщество</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4 mt-4 mb-2">Создать сообщество</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}

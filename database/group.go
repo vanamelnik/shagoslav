@@ -30,7 +30,7 @@ func (grs *GroupService) AutoMigrate() {
 		name TEXT NOT NULL,
 		email TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
-		remember TEXT UNIQUE NOT NULL,
+		remember TEXT UNIQUE,
 		is_open BOOLEAN DEFAULT TRUE,
 		confirmed BOOLEAN DEFAULT FALSE,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -58,8 +58,8 @@ func (grs *GroupService) CreateGroup(name string, email string, passwordHash str
 	var id int
 	err := grs.db.QueryRow(`INSERT INTO Groups (name, email, password_hash, is_open)
 	VALUES ($1, $2, $3, $4)
-	RETURNING (id, created_at);`,
-		name, email, passwordHash, isOpen).Scan(&id, createdAt)
+	RETURNING id, created_at;`,
+		name, email, passwordHash, isOpen).Scan(&id, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("database: GroupService cannot insert a new group into db: %v", err)
 	}
@@ -111,8 +111,8 @@ func (grs *GroupService) ByRemember(remember string) (*shagoslav.Group, error) {
 }
 
 func (grs *GroupService) UpdateGroup(g *shagoslav.Group) error {
-	_, err := grs.db.Exec(`UPDATE TABLE Groups SET
-	name=$1, email=$2, password_hash=$3, is_open=$4, last_login=$5, remember=$6, WHERE id=$7;`,
+	_, err := grs.db.Exec(`UPDATE Groups SET
+	name=$1, email=$2, password_hash=$3, is_open=$4, last_login=$5, remember=$6 WHERE id=$7;`,
 		g.Name, g.AdminEmail, g.PasswordHash, g.IsOpen, g.LastLogin, g.AdminRememberToken, g.ID)
 	if err != nil {
 		return err

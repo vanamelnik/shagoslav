@@ -1,0 +1,23 @@
+{{define "yield"}}
+    <div class="row justify-content-center">
+        <div class ="col-md-7">
+            <div class="card">
+                <h5 class="card-header bg-primary text-white">Вход</h5>
+                <div class="card-body p-4">
+                    {{/* <h5 class="card-title mb-3">Добро пожаловать!</h5> */}}
+                    <form action = "/group/login" method="POST">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input type="text" id="email" name="email" class="form-control form-control-lg" aria-describedby="emailHelpBlock">
+                        <div id="emailHelpBlock" class="form-text">
+                            Мы обещаем никому не показывать ваш адрес. Он будет использован для важных уведомлений и 
+                            восстановления пароля
+                        </div>
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg" aria-describedby="passwordHelpBlock">
+                        <button type="submit" class="btn btn-primary px-4 mt-4 mb-2">Войти</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}

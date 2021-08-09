@@ -56,7 +56,6 @@ func (ms *MeetingService) CreateMeeting(title string, groupID int) (*shagoslav.M
 	var createdAt time.Time
 	guestToken := rand.Token()
 	adminToken := rand.Token() //TODO: error check
-	// TODO: check if grooupID is valid
 	err := ms.db.QueryRow(`INSERT INTO Meetings (title, group_id, guest_token, admin_token)
 	VALUES ($1, $2, $3, $4)
 	RETURNING id, created_at;`, title, groupID, guestToken, adminToken).Scan(&id, &createdAt)
@@ -72,23 +71,6 @@ func (ms *MeetingService) CreateMeeting(title string, groupID int) (*shagoslav.M
 		CreatedAt:  createdAt,
 	}, nil
 }
-
-// I don't know if this function is needed...
-//
-// func (ms *MeetingRoomService) ByID(id int) (*shagoslav.MeetingRoom, error) {
-// 	mr := new(shagoslav.MeetingRoom)
-// 	mr.ID = id
-// 	err := ms.db.QueryRow(`SELECT group_id, title, guest_token, admin_token, created_at
-// 	FROM Meetings
-// 	WHERE id = $1;`, id).Scan(&mr.GroupID, &mr.title, &mr.GuestToken, &mr.AdminToken, &mr.CreatedAt)
-// 	if err != nil {
-// 		if err == sql.ErrNoRows {
-// 			return nil, ErrNotFound
-// 		}
-// 		return nil, fmt.Errorf("MeetingService cannot find the meeting id = %d: %v", id, err)
-// 	}
-// 	return mr, nil
-// }
 
 // ByToken retrieves a meeting object from the database using admin or guest token.
 // Returns ErrNotFound if the meeting does not exist

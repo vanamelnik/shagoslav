@@ -37,17 +37,23 @@ type GroupService interface {
 	ByRemember(remember string) (*Group, error)
 }
 
-func NewGroupController(ms MeetingService) *GroupController {
+func NewGroupController(ms MeetingService, grs GroupService) *GroupController {
 	return &GroupController{
-		AccountView: views.NewView("bootstrap", "views/account.gohtml"),
-		ms:          ms,
+		grs:          grs,
+		ms:           ms,
+		NewGroupView: views.NewView("bootstrap", "views/new_group.gohtml"),
+		LoginView:    views.NewView("bootstrap", "views/login.gohtml"),
+		AccountView:  views.NewView("bootstrap", "views/account.gohtml"),
 	}
 }
 
 type GroupController struct {
-	grs         GroupService
-	ms          MeetingService
-	AccountView *views.View
+	grs GroupService
+	ms  MeetingService
+
+	NewGroupView *views.View
+	LoginView    *views.View
+	AccountView  *views.View
 }
 
 // getPostFormParams parses PostForm and fills the input form fields using Gorilla Schema
@@ -57,7 +63,7 @@ func getPostFormParams(r *http.Request, form interface{}) error {
 	}
 	dec := schema.NewDecoder()
 	dec.IgnoreUnknownKeys(true)
-	if err := dec.Decode(&form, r.PostForm); err != nil {
+	if err := dec.Decode(form, r.PostForm); err != nil {
 		return err
 	}
 	return nil
@@ -69,33 +75,45 @@ func getPostFormParams(r *http.Request, form interface{}) error {
 // POST /group/signup
 func (gc *GroupController) Signup(w http.ResponseWriter, r *http.Request) {
 	type signupForm struct {
-		name     string `schema:"name"`
-		email    string `schema:"email"`
-		password string `schema:"password"`
-		isOpen   bool   `schema:"isOpen"`
+		Name     string `schema:"name"`
+		Email    string `schema:"email"`
+		Password string `schema:"password"`
+		IsOpen   bool   `schema:"isOpen"`
 	}
 	var f signupForm
 	if err := getPostFormParams(r, &f); err != nil {
-		log.Printf("GroupController:Signup:Parseform: %v", err)
+		log.Printf("GroupController:Signup:Parseform: %v\n", err)
 		http.Error(w, "Sorrrrrry... "+err.Error(), http.StatusInternalServerError) // TODO: fix this
 		return
 	}
 
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(f.password), bcrypt.DefaultCost)
+	pwdHash, err := bcrypt.GenerateFromPassword([]byte(f.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("GroupController:Signup:bcrypt:%v", err)
 		http.Error(w, "Sorry, something went wrong. Please reload the page.", http.StatusInternalServerError)
+		return
 	}
-	g, err := gc.grs.CreateGroup(f.name, f.email, string(pwdHash), f.isOpen)
+	f.Password = ""
+
+	// So far the service supports no more than one group attached to a unique e-mail
+	if _, err := gc.grs.ByEmail(f.Email); err == nil {
+		// TODO: Set alert
+		log.Printf("E-mail address %s already registered\n", f.Email)
+		http.Redirect(w, r, "/group/signup", http.StatusFound)
+		return
+	}
+	g, err := gc.grs.CreateGroup(f.Name, f.Email, string(pwdHash), f.IsOpen)
 	if err != nil {
 		log.Printf("GroupService:Signup: %v", err)
 		http.Error(w, "Something went wrong, cannot create a new group((", http.StatusInternalServerError)
+		return
 	}
 	log.Printf("GroupController: Successfully created a new group id=%v, name=%s, email=%s, password_hash=%s, created_at=%v",
 		g.ID, g.Name, g.AdminEmail, g.PasswordHash, g.CreatedAt)
 	if err = gc.signIn(g, w); err != nil {
 		log.Printf("GroupService:Signup: %v", err)
 		http.Error(w, "Something went wrong, cannot log in((", http.StatusInternalServerError) // TODO: Alert
+		return
 	}
 	http.Redirect(w, r, "/group", http.StatusFound)
 }
@@ -105,8 +123,8 @@ func (gc *GroupController) Signup(w http.ResponseWriter, r *http.Request) {
 // POST /group/login
 func (gc *GroupController) Login(w http.ResponseWriter, r *http.Request) {
 	type loginForm struct {
-		email    string `schema:"email"`
-		password string `schema:"password"`
+		Email    string `schema:"email"`
+		Password string `schema:"password"`
 	}
 	var f loginForm
 	if err := getPostFormParams(r, &f); err != nil {
@@ -114,22 +132,24 @@ func (gc *GroupController) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Sorrrrrry... "+err.Error(), http.StatusInternalServerError) // TODO: fix this
 		return
 	}
-	g, err := gc.grs.ByEmail(f.email)
+	g, err := gc.grs.ByEmail(f.Email)
 	if err != nil {
 		log.Printf("GroupService:login:%v", err)
 		// TODO: Set Alert wrong email & password
 		http.Redirect(w, r, "/group/login", http.StatusFound)
 		return
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(g.PasswordHash), []byte(f.password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(g.PasswordHash), []byte(f.Password)); err != nil {
 		// TODO: Set Alert Wrong email & password
 		log.Printf("GroupService:login:%v", err)
 		http.Redirect(w, r, "/group/login", http.StatusFound)
+		return
 	}
 	err = gc.signIn(g, w)
 	if err != nil {
-		log.Printf("GroupService:login:UpdateGroup%v", err)
+		log.Printf("GroupService:login:UpdateGroup:%v", err)
 		http.Redirect(w, r, "/group/login", http.StatusFound)
+		return
 	}
 	http.Redirect(w, r, "/group", http.StatusFound)
 }
@@ -143,8 +163,9 @@ func (gc *GroupController) signIn(g *Group, w http.ResponseWriter) error {
 		return err
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:  adminRememberCookie,
-		Value: g.AdminRememberToken,
+		Name:    adminRememberCookie,
+		Value:   g.AdminRememberToken,
+		Expires: time.Now().Add(1 * time.Minute), // TODO: remove this!
 	})
 	return nil
 }
@@ -185,10 +206,10 @@ func (gc *GroupController) AccountPage(w http.ResponseWriter, r *http.Request) {
 // POST /group
 func (gc *GroupController) NewMeeting(w http.ResponseWriter, r *http.Request) {
 	type meetingForm struct {
-		title         string `schema:"title"`
-		acceptOptions bool   `schema:"acceptOptions"`
-		start         string `schema:"start"`
-		duration      string `schema:"duration"`
+		Title         string `schema:"title"`
+		AcceptOptions bool   `schema:"acceptOptions"`
+		Start         string `schema:"start"`
+		Duration      string `schema:"duration"`
 	}
 	// TODO: add middleware to check if there's a cookie and retrieve a Group object
 	cookie, err := r.Cookie(adminRememberCookie)
@@ -208,21 +229,16 @@ func (gc *GroupController) NewMeeting(w http.ResponseWriter, r *http.Request) {
 	var f meetingForm
 	// TODO: implement decoding fields "start" and "duration"
 	// and update MeetingsService and meetings table in DB
-	if err := r.ParseForm(); err != nil {
-		log.Printf("NewMeeting:parseform:%v", err)
-		gc.AccountPage(w, r)
+	if err := getPostFormParams(r, &f); err != nil {
+		log.Printf("NewMeetingInfo:schema:%v", err)
+		http.Redirect(w, r, "/group", http.StatusFound)
 		return
 	}
-	dec := schema.NewDecoder()
-	dec.IgnoreUnknownKeys(true)
-	if err := dec.Decode(&f, r.PostForm); err != nil {
-		log.Printf("NewMeetingInfo:schema:%v", err)
-		gc.AccountView.Render(w, r, nil)
-	}
-	meeting, err := gc.ms.CreateMeeting(f.title, g.ID)
+	meeting, err := gc.ms.CreateMeeting(f.Title, g.ID)
 	if err != nil {
 		log.Printf("AccountPage: %v", err)
 		http.Error(w, "Something went wrong, cannot create new meeting((", http.StatusInternalServerError)
+		return
 	}
 	log.Printf("AccountPage: Successfuly created a meeting %s\n", meeting.Title)
 	http.Redirect(w, r, "/group", http.StatusFound)

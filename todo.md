@@ -2,7 +2,8 @@
 - Add comments in group.go
 
 ## Validations
-- GuestController: validate guest's name
+JS))
+- GuestController: validate guest's name 
 - GroupController: validate meeting title
 
 ## Log

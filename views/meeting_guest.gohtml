@@ -1,14 +1,7 @@
 {{define "yield"}}
-    {{/* <h2>Добро пожаловать на встречу {{.MeetingTitle}}</h2>
-    <p>Ваше имя: {{.Data.Guest.Name}}</p>
-    <h3>На встрече также присутствуют:</h3>
-    <ul>
-        {{range .Data.Guests}}
-            <li>{{.Name}}{{if .IsAdmin}} <b>admin</b>{{end}}</li>
-        {{end}}
-    </ul> */}}
     {{template "guest_view" .Data}}
 {{end}}
+
 {{define "guest_view"}}
     <div class="row">
         <!-- Guests column -->

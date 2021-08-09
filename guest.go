@@ -57,6 +57,7 @@ type Guest struct {
 
 func NewGuestController(gs GuestService, grs GroupService, ms MeetingService) *GuestController {
 	return &GuestController{
+		grs:              grs,
 		gs:               gs,
 		mrs:              ms,
 		SignupView:       views.NewView("bootstrap", "views/new_guest.gohtml"),
